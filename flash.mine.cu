@@ -28,51 +28,8 @@ __global__ void forward_kernel(const float* Q, const float* K, const float* V, c
 			Vj[(tx * d) + x] = V[qkv_offset + (tile_size * j) + (tx * d) + x];
 		}
 		__syncthreads();  // such that the inner loop can use the correct Kj, Vj
+		// TODO fill this in
 
-		for (int i = 0; i < Tr; i++) {
-			// Load Qi to SRAM, l and m to registers
-			for (int x = 0; x < d; x++) {
-				Qi[(tx * d) + x] = Q[qkv_offset + (tile_size * i) + (tx * d) + x];
-			}
-			float row_m_prev = m[lm_offset + (Br * i) + tx];
-			float row_l_prev = l[lm_offset + (Br * i) + tx];
-
-			// S = QK^T, row_m = rowmax(S)
-			float row_m = -INFINITY;
-			for (int y = 0; y < Bc; y++) {
-				float sum = 0;
-				for (int x = 0; x < d; x++) {
-					sum += Qi[(tx * d) + x] * Kj[(y * d) + x];
-				}
-				sum *= softmax_scale;
-				S[(Bc * tx) + y] = sum;
-
-				if (sum > row_m)
-					row_m = sum;
-			}
-
-			// P = exp(S - row_m), row_l = rowsum(P)
-			float row_l = 0;
-			for (int y = 0; y < Bc; y++) {
-				S[(Bc * tx) + y] = __expf(S[(Bc * tx) + y] - row_m);
-				row_l += S[(Bc * tx) + y];
-			}
-
-			// Compute new m and l
-			float row_m_new = max(row_m_prev, row_m);
-			float row_l_new = (__expf(row_m_prev - row_m_new) * row_l_prev) + (__expf(row_m - row_m_new) * row_l);
-
-			// Write O, l, m to HBM
-			for (int x = 0; x < d; x++) {
-				float pv = 0;  // Pij * Vj
-				for (int y = 0; y < Bc; y++) {
-					pv += S[(Bc * tx) + y] * Vj[(y * d) + x];
-				}
-				O[qkv_offset + (tile_size * i) + (tx * d) + x] = (1 / row_l_new) * ((row_l_prev * __expf(row_m_prev - row_m_new) * O[qkv_offset + (tile_size * i) + (tx * d) + x]) + (__expf(row_m - row_m_new) * pv));
-			}
-			m[lm_offset + (Br * i) + tx] = row_m_new;
-			l[lm_offset + (Br * i) + tx] = row_l_new;
-		}
 		__syncthreads();  // otherwise, thread can use the wrong Kj, Vj in inner loop
 	}
 }

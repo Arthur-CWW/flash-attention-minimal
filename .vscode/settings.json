@@ -1,0 +1,11 @@
+{
+	"C_Cpp.default.includePath": [
+		"${workspaceFolder}/**",
+		"/usr/local/cuda/include",
+		"${workspaceFolder}/.venv/lib/python3.13/site-packages/torch/include",
+		"${workspaceFolder}/.venv/lib/python3.13/site-packages/torch/include/torch/csrc/api/include"
+	],
+	"C_Cpp.default.defines": [
+		"CUDA_VERSION=11000"
+	]
+}

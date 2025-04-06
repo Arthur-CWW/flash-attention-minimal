@@ -1,3 +1,8 @@
+# /// script
+# requires-python = ">=3.13"
+# dependencies = [torch]
+# ///
+
 import math
 
 import torch
@@ -37,3 +42,4 @@ with torch.autograd.profiler.profile(use_cuda=True) as prof:
 print(prof.key_averages().table(sort_by='cuda_time_total', row_limit=10))
 
 print('attn values sanity check:', torch.allclose(minimal_result, manual_result, rtol=0, atol=1e-02))
+
